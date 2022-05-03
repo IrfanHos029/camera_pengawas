@@ -54,7 +54,7 @@ byte DBack = 1000;
 bool stateI = false;
 int counter = 0;
 int timer = 0;
-byte batas = 122;
+byte batas = 30;
 
 //Checks for new messages every 1 second.
 int botRequestDelay = 1000;
@@ -153,6 +153,7 @@ void handleNewMessages(int numNewMessages) {
       welcome += "/lampu_OFF : mematikan lampu \n";
       welcome += "/mode_pagi : menyalakan mode pagi \n";
       welcome += "/mode_malam : menyalakan mode malam \n";
+      welcome += "/RESET \n"
       
       bot.sendMessage(CHAT_ID, welcome, "");
     }
@@ -196,6 +197,12 @@ void handleNewMessages(int numNewMessages) {
       stateMode = false;
       Serial.println("mode malam");
       bot.sendMessage(CHAT_ID, "MODE MALAM AKTIF", "");
+    }
+
+    if(text == "/RESET"){
+       bot.sendMessage(CHAT_ID, "CONTROLLER CAMERA DIRESET", "");
+       delay(3000);
+       ESP.restart();
     }
      /////////////done///////////////
    }
@@ -327,7 +334,7 @@ void loop() {
   if(stateSecurity==true){
     
     sensorPripare();
-    Serial.println(timer);
+    //Serial.println(timer);
     if(stateSensor==true){
       if(stateMode == true){
       stateLam = false;
