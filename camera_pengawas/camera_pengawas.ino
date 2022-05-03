@@ -1,6 +1,6 @@
 /*
- DIMODIF TANGGAL : 03-05-2022
- IRFAN ARDIANSYAH
+  DIMODIF TANGGAL : 03-05-2022
+  IRFAN ARDIANSYAH
 */
 
 #include <Arduino.h>
@@ -43,6 +43,8 @@ bool stateInd = false;
 bool stateSensor = false;
 bool stateSecurity = false;
 bool stateMode = false;
+bool stateReset = false;
+bool stateI = false;
 
 unsigned long Sindi = 0;
 unsigned long SLedV = 0;
@@ -51,10 +53,10 @@ unsigned long SBack = 0;
 byte Dindi = 1000;
 byte DRecon = 1000;
 byte DBack = 1000;
-bool stateI = false;
+byte batas = 30;
 int counter = 0;
 int timer = 0;
-byte batas = 30;
+int countWifi = 0;
 
 //Checks for new messages every 1 second.
 int botRequestDelay = 1000;
@@ -80,7 +82,7 @@ unsigned long lastTimeBotRan;
 #define PCLK_GPIO_NUM     22
 
 
-void configInitCamera(){
+void configInitCamera() {
   camera_config_t config;
   config.ledc_channel = LEDC_CHANNEL_0;
   config.ledc_timer = LEDC_TIMER_0;
@@ -104,16 +106,16 @@ void configInitCamera(){
   config.pixel_format = PIXFORMAT_JPEG;
 
   //init with high specs to pre-allocate larger buffers
-  if(psramFound()){
+  if (psramFound()) {
     config.frame_size = FRAMESIZE_UXGA;
     config.jpeg_quality = 10;  //0-63 lower number means higher quality
     config.fb_count = 2;
   } else {
     config.frame_size = FRAMESIZE_SVGA;
-    config.jpeg_quality = 12;  //0-63 lower number means higher quality
+    config.jpeg_quality = 10;  //0-63 lower number means higher quality
     config.fb_count = 1;
   }
-  
+
   // camera init
   esp_err_t err = esp_camera_init(&config);
   if (err != ESP_OK) {
@@ -125,6 +127,7 @@ void configInitCamera(){
   // Drop down frame size for higher initial frame rate
   sensor_t * s = esp_camera_sensor_get();
   s->set_framesize(s, FRAMESIZE_CIF);  // UXGA|SXGA|XGA|SVGA|VGA|CIF|QVGA|HQVGA|QQVGA
+  s->set_hmirror(s, 1);
 }
 
 void handleNewMessages(int numNewMessages) {
@@ -133,15 +136,15 @@ void handleNewMessages(int numNewMessages) {
 
   for (int i = 0; i < numNewMessages; i++) {
     String chat_id = String(bot.messages[i].chat_id);
-    if (chat_id != CHAT_ID){
+    if (chat_id != CHAT_ID) {
       bot.sendMessage(chat_id, "Unauthorized user", "");
       continue;
     }
-    
+
     // Print the received message
     String text = bot.messages[i].text;
     Serial.println(text);
-    
+
     String from_name = bot.messages[i].from_name;
     if (text == "/start") {
       String welcome = "Welcome , " + from_name + "\n";
@@ -153,8 +156,8 @@ void handleNewMessages(int numNewMessages) {
       welcome += "/lampu_OFF : mematikan lampu \n";
       welcome += "/mode_pagi : menyalakan mode pagi \n";
       welcome += "/mode_malam : menyalakan mode malam \n";
-      welcome += "/RESET \n"
-      
+      welcome += "/RESET \n";
+
       bot.sendMessage(CHAT_ID, welcome, "");
     }
     /////blok eksekusi perintah
@@ -163,50 +166,48 @@ void handleNewMessages(int numNewMessages) {
       Serial.println("New photo request");
     }
 
-    if (text == "/lampu_ON"){
+    if (text == "/lampu_ON") {
       stateLam = true;
       Serial.println("lampu ON");
       bot.sendMessage(CHAT_ID, "lampu dinyalakan", "");
     }
 
-    if (text == "/lampu_OFF"){
+    if (text == "/lampu_OFF") {
       stateLam = false;
       Serial.println("lampu OFF");
       bot.sendMessage(CHAT_ID, "lampu dimatikan", "");
     }
 
-    if (text == "/security_ON"){
+    if (text == "/security_ON") {
       stateSecurity = true;
       Serial.println("SYSTEM SECURITY AKTIF");
       bot.sendMessage(CHAT_ID, "SYSTEM SECURITY AKTIF", "");
     }
 
-    if (text == "/security_OFF"){
+    if (text == "/security_OFF") {
       stateSecurity = false;
       Serial.println("SYSTEM SECURITY NON AKTIF");
       bot.sendMessage(CHAT_ID, "SYSTEM SECURITY NON AKTIF", "");
     }
 
-    if(text == "/mode_pagi"){
-      stateMode = true; 
+    if (text == "/mode_pagi") {
+      stateMode = true;
       Serial.println("mode pagi");
       bot.sendMessage(CHAT_ID, "MODE PAGI AKTIF", "");
     }
 
-    if(text == "/mode_malam"){
+    if (text == "/mode_malam") {
       stateMode = false;
       Serial.println("mode malam");
       bot.sendMessage(CHAT_ID, "MODE MALAM AKTIF", "");
     }
 
-    if(text == "/RESET"){
-       bot.sendMessage(CHAT_ID, "CONTROLLER CAMERA DIRESET", "");
-       delay(3000);
-       ESP.restart();
+    if (text == "/RESET") {
+      stateReset = true;
     }
-     /////////////done///////////////
-   }
+    /////////////done///////////////
   }
+}
 
 
 String sendPhotoTelegram() {
@@ -215,90 +216,90 @@ String sendPhotoTelegram() {
   String getBody = "";
 
   camera_fb_t * fb = NULL;
-  fb = esp_camera_fb_get();  
-  if(!fb) {
+  fb = esp_camera_fb_get();
+  if (!fb) {
     Serial.println("Camera capture failed");
     delay(1000);
     ESP.restart();
     return "Camera capture failed";
-  }  
-  
+  }
+
   Serial.println("Connect to " + String(myDomain));
 
 
   if (clientTCP.connect(myDomain, 443)) {
     Serial.println("Connection successful");
-    
+
     String head = "--RandomNerdTutorials\r\nContent-Disposition: form-data; name=\"chat_id\"; \r\n\r\n" + CHAT_ID + "\r\n--RandomNerdTutorials\r\nContent-Disposition: form-data; name=\"photo\"; filename=\"esp32-cam.jpg\"\r\nContent-Type: image/jpeg\r\n\r\n";
     String tail = "\r\n--RandomNerdTutorials--\r\n";
 
     uint16_t imageLen = fb->len;
     uint16_t extraLen = head.length() + tail.length();
     uint16_t totalLen = imageLen + extraLen;
-  
-    clientTCP.println("POST /bot"+BOTtoken+"/sendPhoto HTTP/1.1");
+
+    clientTCP.println("POST /bot" + BOTtoken + "/sendPhoto HTTP/1.1");
     clientTCP.println("Host: " + String(myDomain));
     clientTCP.println("Content-Length: " + String(totalLen));
     clientTCP.println("Content-Type: multipart/form-data; boundary=RandomNerdTutorials");
     clientTCP.println();
     clientTCP.print(head);
-  
+
     uint8_t *fbBuf = fb->buf;
     size_t fbLen = fb->len;
-    for (size_t n=0;n<fbLen;n=n+1024) {
-      if (n+1024<fbLen) {
+    for (size_t n = 0; n < fbLen; n = n + 1024) {
+      if (n + 1024 < fbLen) {
         clientTCP.write(fbBuf, 1024);
         fbBuf += 1024;
       }
-      else if (fbLen%1024>0) {
-        size_t remainder = fbLen%1024;
+      else if (fbLen % 1024 > 0) {
+        size_t remainder = fbLen % 1024;
         clientTCP.write(fbBuf, remainder);
       }
-    }  
-    
+    }
+
     clientTCP.print(tail);
-    
+
     esp_camera_fb_return(fb);
-    
+
     int waitTime = 10000;   // timeout 10 seconds
     long startTimer = millis();
     boolean state = false;
-    
-    while ((startTimer + waitTime) > millis()){
+
+    while ((startTimer + waitTime) > millis()) {
       Serial.print(".");
-      delay(100);      
+      delay(100);
       while (clientTCP.available()) {
         char c = clientTCP.read();
-        if (state==true) getBody += String(c);        
+        if (state == true) getBody += String(c);
         if (c == '\n') {
-          if (getAll.length()==0) state=true; 
+          if (getAll.length() == 0) state = true;
           getAll = "";
-        } 
+        }
         else if (c != '\r')
           getAll += String(c);
         startTimer = millis();
       }
-      if (getBody.length()>0) break;
+      if (getBody.length() > 0) break;
     }
     clientTCP.stop();
     Serial.println(getBody);
   }
   else {
-    getBody="Connected to api.telegram.org failed.";
+    getBody = "Connected to api.telegram.org failed.";
     Serial.println("Connected to api.telegram.org failed.");
   }
   return getBody;
 }
 
-void setup(){
-  WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); 
+void setup() {
+  WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);
   // Init Serial Monitor
   Serial.begin(115200);
 
-  pinMode(relay,OUTPUT);
-  pinMode(pir_1,INPUT);
-  pinMode(pir_2,INPUT);
-  pinMode(indikator,OUTPUT);
+  pinMode(relay, OUTPUT);
+  pinMode(pir_1, INPUT);
+  pinMode(pir_2, INPUT);
+  pinMode(indikator, OUTPUT);
   // Config and init the camera
   configInitCamera();
 
@@ -310,43 +311,53 @@ void setup(){
   WiFi.begin(ssid, password);
   clientTCP.setCACert(TELEGRAM_CERTIFICATE_ROOT); // Add root certificate for api.telegram.org
   while (WiFi.status() != WL_CONNECTED) {
+    countWifi++;
+    if (countWifi == 120) {
+      ESP.restart();
+    }
+    //Serial.println(countWifi);
     Serial.print(".");
     delay(500);
-    digitalWrite(indikator,HIGH);
+    digitalWrite(indikator, HIGH);
     delay(500);
-    digitalWrite(indikator,LOW);
+    digitalWrite(indikator, LOW);
   }
   bot.sendMessage(CHAT_ID, "SYSTEM CAMERA AKTIF", "");
   Serial.println();
   Serial.print("ESP32-CAM IP Address: ");
-  Serial.println(WiFi.localIP()); 
+  Serial.println(WiFi.localIP());
 }
 
 void loop() {
   Indikator();
-  
+
   if (sendPhoto) {
     Serial.println("Preparing photo");
-    sendPhotoTelegram(); 
-    sendPhoto = false; 
+    sendPhotoTelegram();
+    sendPhoto = false;
   }
 
-  if(stateSecurity==true){
-    
+  if (stateSecurity == true) {
+
     sensorPripare();
     //Serial.println(timer);
-    if(stateSensor==true){
-      if(stateMode == true){
-      stateLam = false;
+    if (stateSensor == true) {
+
+      if (stateMode == true) {
+        stateLam = false;
       }
-      else{ stateLam = true; }
+
+      else {
+        stateLam = true;
+      }
+
       sendPhotoTelegram();
       bot.sendMessage(CHAT_ID, "OBJEK TERDETEKSI", "");
       //bot.sendMessage(CHAT_ID, "MENG-AKTIFKAN LAMPU DARURAT", "");
       TimerBack(0);
     }
 
-     else if (stateSensor == false) {
+    else if (stateSensor == false) {
       TimerBack(1);
       while (timer >= batas) {
         stateLam = false;
@@ -356,11 +367,13 @@ void loop() {
     }
   }
 
-  
+
 
 
   outLamp();
   Reconnect();
+  RESET();
+  //Serial.println(counter);
   if (millis() > lastTimeBotRan + botRequestDelay)  {
     int numNewMessages = bot.getUpdates(bot.last_message_received + 1);
     while (numNewMessages) {
@@ -423,24 +436,25 @@ void sensorPripare() {
   pir1 = digitalRead(pir_1);
   pir2 = digitalRead(pir_2);
 
-  if(pir1 == HIGH && pir2 == HIGH){
+  if (pir1 == HIGH && pir2 == HIGH) {
     stateSensor = true;
   }
-  if(pir1 == HIGH && pir2 == LOW){
+  if (pir1 == HIGH && pir2 == LOW) {
     stateSensor = true;
   }
-  if(pir1 == LOW && pir2 == HIGH){
+  if (pir1 == LOW && pir2 == HIGH) {
     stateSensor = true;
   }
-  if(pir1 == LOW && pir2 == LOW){
+  if (pir1 == LOW && pir2 == LOW) {
     stateSensor = false;
   }
 
-//  Serial.print("sensor 1 :");
-//  Serial.println(pir1);
-//  Serial.print("sensor 2 :");
-//  Serial.println(pir2);
+  //  Serial.print("sensor 1 :");
+  //  Serial.println(pir1);
+  //  Serial.print("sensor 2 :");
+  //  Serial.println(pir2);
 }
+
 
 int TimerBack(bool state) {
 
@@ -457,5 +471,12 @@ int TimerBack(bool state) {
     timer = 0;
     SBack = 0;
   }
+}
 
+void RESET() {
+  if (stateReset == true) {
+    bot.sendMessage(CHAT_ID, "CONTROLLER CAMERA DIRESET", "");
+    delay(3000);
+    ESP.restart();
+  }
 }
