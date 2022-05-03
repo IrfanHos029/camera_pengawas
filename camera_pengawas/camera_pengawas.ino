@@ -305,7 +305,11 @@ void setup(){
   while (WiFi.status() != WL_CONNECTED) {
     Serial.print(".");
     delay(500);
+    digitalWrite(indikator,HIGH);
+    delay(500);
+    digitalWrite(indikator,LOW);
   }
+  bot.sendMessage(CHAT_ID, "SYSTEM CAMERA AKTIF", "");
   Serial.println();
   Serial.print("ESP32-CAM IP Address: ");
   Serial.println(WiFi.localIP()); 
@@ -332,7 +336,7 @@ void loop() {
       sendPhotoTelegram();
       bot.sendMessage(CHAT_ID, "OBJEK TERDETEKSI", "");
       bot.sendMessage(CHAT_ID, "MENG-AKTIFKAN LAMPU DARURAT", "");
-      timer = 0;
+      TimerBack(0);
     }
 
      else if (stateSensor == false) {
