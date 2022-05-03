@@ -16,12 +16,12 @@ const char* ssid = "Irfan.A";
 const char* password = "irfan0204";
 
 // Initialize Telegram BOT
-String BOTtoken = "XXXXXXXXXX:XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";  // your Bot Token (Get from Botfather)
+String BOTtoken = "5195463460:AAG9md0otaoP37pUi1130931TIMAFp-ZOlI";  // your Bot Token (Get from Botfather)
 
 // Use @myidbot to find out the chat ID of an individual or a group
 // Also note that you need to click "start" on a bot before it can
 // message you
-String CHAT_ID = "XXXXXXXXXX";
+String CHAT_ID = "5310962025";
 
 bool sendPhoto = false;
 
@@ -186,13 +186,13 @@ void handleNewMessages(int numNewMessages) {
       bot.sendMessage(CHAT_ID, "SYSTEM SECURITY NON AKTIF", "");
     }
 
-    if(text == "/mode_ON"){
+    if(text == "/mode_pagi"){
       stateMode = true; 
       Serial.println("mode pagi");
       bot.sendMessage(CHAT_ID, "MODE PAGI AKTIF", "");
     }
 
-    if(text == "/mode_OFF"){
+    if(text == "/mode_malam"){
       stateMode = false;
       Serial.println("mode malam");
       bot.sendMessage(CHAT_ID, "MODE MALAM AKTIF", "");
@@ -327,7 +327,7 @@ void loop() {
   if(stateSecurity==true){
     
     sensorPripare();
-    
+    Serial.println(timer);
     if(stateSensor==true){
       if(stateMode == true){
       stateLam = false;
@@ -335,7 +335,7 @@ void loop() {
       else{ stateLam = true; }
       sendPhotoTelegram();
       bot.sendMessage(CHAT_ID, "OBJEK TERDETEKSI", "");
-      bot.sendMessage(CHAT_ID, "MENG-AKTIFKAN LAMPU DARURAT", "");
+      //bot.sendMessage(CHAT_ID, "MENG-AKTIFKAN LAMPU DARURAT", "");
       TimerBack(0);
     }
 
@@ -416,19 +416,23 @@ void sensorPripare() {
   pir1 = digitalRead(pir_1);
   pir2 = digitalRead(pir_2);
 
-  if (pir1 == HIGH) {
+  if(pir1 == HIGH && pir2 == HIGH){
     stateSensor = true;
   }
-  if (pir1 == LOW) {
-    stateSensor = false;
-  }
-  if (pir2 == HIGH) {
+  if(pir1 == HIGH && pir2 == LOW){
     stateSensor = true;
   }
-  if (pir2 == LOW) {
+  if(pir1 == LOW && pir2 == HIGH){
+    stateSensor = true;
+  }
+  if(pir1 == LOW && pir2 == LOW){
     stateSensor = false;
   }
 
+//  Serial.print("sensor 1 :");
+//  Serial.println(pir1);
+//  Serial.print("sensor 2 :");
+//  Serial.println(pir2);
 }
 
 int TimerBack(bool state) {
