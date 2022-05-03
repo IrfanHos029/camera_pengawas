@@ -34,8 +34,27 @@ UniversalTelegramBot bot(BOTtoken, clientTCP);
 #define pir_2 15
 #define indikator 12
 
+byte pir1 = 0;
+byte pir2 = 0;
+bool stateLam = false;
+bool statePir1 = false;
+bool statePir2 = false;
+bool stateInd = false;
+bool stateSensor = false;
+bool stateSecurity = false;
+bool stateMode = false;
 
-//bool flashState = LOW;
+unsigned long Sindi = 0;
+unsigned long SLedV = 0;
+unsigned long SRecon = 0;
+unsigned long SBack = 0;
+byte Dindi = 1000;
+byte DRecon = 1000;
+byte DBack = 1000;
+bool stateI = false;
+int counter = 0;
+int timer = 0;
+byte batas = 122;
 
 //Checks for new messages every 1 second.
 int botRequestDelay = 1000;
@@ -137,17 +156,51 @@ void handleNewMessages(int numNewMessages) {
       
       bot.sendMessage(CHAT_ID, welcome, "");
     }
-    if (text == "/flash") {
-//      flashState = !flashState;
-//      digitalWrite(FLASH_LED_PIN, flashState);
-      Serial.println("Change flash LED state");
-    }
+    /////blok eksekusi perintah
     if (text == "/photo") {
       sendPhoto = true;
       Serial.println("New photo request");
     }
+
+    if (text == "/lampu_ON"){
+      stateLam = true;
+      Serial.println("lampu ON");
+      bot.sendMessage(CHAT_ID, "lampu dinyalakan", "");
+    }
+
+    if (text == "/lampu_OFF"){
+      stateLam = false;
+      Serial.println("lampu OFF");
+      bot.sendMessage(CHAT_ID, "lampu dimatikan", "");
+    }
+
+    if (text == "/security_ON"){
+      stateSecurity = true;
+      Serial.println("SYSTEM SECURITY AKTIF");
+      bot.sendMessage(CHAT_ID, "SYSTEM SECURITY AKTIF", "");
+    }
+
+    if (text == "/security_OFF"){
+      stateSecurity = false;
+      Serial.println("SYSTEM SECURITY NON AKTIF");
+      bot.sendMessage(CHAT_ID, "SYSTEM SECURITY NON AKTIF", "");
+    }
+
+    if(text == "/mode_ON"){
+      stateMode = true; 
+      Serial.println("mode pagi");
+      bot.sendMessage(CHAT_ID, "MODE PAGI AKTIF", "");
+    }
+
+    if(text == "/mode_OFF"){
+      stateMode = false;
+      Serial.println("mode malam");
+      bot.sendMessage(CHAT_ID, "MODE MALAM AKTIF", "");
+    }
+     /////////////done///////////////
+   }
   }
-}
+
 
 String sendPhotoTelegram() {
   const char* myDomain = "api.telegram.org";
@@ -235,10 +288,10 @@ void setup(){
   // Init Serial Monitor
   Serial.begin(115200);
 
-  // Set LED Flash as output
- // pinMode(FLASH_LED_PIN, OUTPUT);
- // digitalWrite(FLASH_LED_PIN, flashState);
-
+  pinMode(relay,OUTPUT);
+  pinMode(pir_1,INPUT);
+  pinMode(pir_2,INPUT);
+  pinMode(indikator,OUTPUT);
   // Config and init the camera
   configInitCamera();
 
@@ -259,11 +312,44 @@ void setup(){
 }
 
 void loop() {
+  Indikator();
+  
   if (sendPhoto) {
     Serial.println("Preparing photo");
     sendPhotoTelegram(); 
     sendPhoto = false; 
   }
+
+  if(stateSecurity==true){
+    
+    sensorPripare();
+    
+    if(stateSensor==true){
+      if(stateMode == true){
+      stateLam = false;
+      }
+      else{ stateLam = true; }
+      sendPhotoTelegram();
+      bot.sendMessage(CHAT_ID, "OBJEK TERDETEKSI", "");
+      bot.sendMessage(CHAT_ID, "MENG-AKTIFKAN LAMPU DARURAT", "");
+      timer = 0;
+    }
+
+     else if (stateSensor == false) {
+      TimerBack(1);
+      while (timer >= batas) {
+        stateLam = false;
+        timer = 0;
+        break;
+      }
+    }
+  }
+
+  
+
+
+  outLamp();
+  Reconnect();
   if (millis() > lastTimeBotRan + botRequestDelay)  {
     int numNewMessages = bot.getUpdates(bot.last_message_received + 1);
     while (numNewMessages) {
@@ -273,4 +359,88 @@ void loop() {
     }
     lastTimeBotRan = millis();
   }
+}
+
+void Indikator() {
+  unsigned long tmr = millis();
+
+  if (WiFi.status() != WL_CONNECTED) {
+    if (tmr - Sindi > Dindi) {
+      Sindi = tmr;
+      stateI = !stateI;
+    }
+  }
+
+  else if (WiFi.status() == WL_CONNECTED) {
+    stateI = true;
+  }
+}
+
+void Reconnect() {
+  unsigned long tmr = millis();
+
+  if (WiFi.status() != WL_CONNECTED) {
+    if (tmr - SRecon > DRecon) {
+      SRecon = tmr;
+      counter++;
+      if (counter == 120) {
+        Serial.println("RESTART");
+        ESP.restart();
+      }
+    }
+  }
+}
+
+void outLamp() {
+  if (stateLam == true) {
+    digitalWrite(relay, HIGH);
+    // Serial.println("lampu");
+  }
+  else if (stateLam == false) {
+    digitalWrite(relay, LOW);
+  }
+
+  if (stateI == true) {
+    digitalWrite(indikator, HIGH);
+  }
+  else if (stateI == false) {
+    digitalWrite(indikator, LOW);
+  }
+}
+
+void sensorPripare() {
+  pir1 = digitalRead(pir_1);
+  pir2 = digitalRead(pir_2);
+
+  if (pir1 == HIGH) {
+    stateSensor = true;
+  }
+  if (pir1 == LOW) {
+    stateSensor = false;
+  }
+  if (pir2 == HIGH) {
+    stateSensor = true;
+  }
+  if (pir2 == LOW) {
+    stateSensor = false;
+  }
+
+}
+
+int TimerBack(bool state) {
+
+  if (state == 1) {
+    unsigned long tmr = millis();
+    if (tmr - SBack > DBack) {
+      SBack = tmr;
+      timer++;
+
+    }
+  }
+
+  else if (state == 0) {
+    timer = 0;
+    SBack = 0;
+  }
+
 }
