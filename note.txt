@@ -1,4 +1,0 @@
-relay : 2
-pir1   : 13
-pir2   : 15
-indikator : 12
