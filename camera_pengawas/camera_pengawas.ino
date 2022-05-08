@@ -11,10 +11,12 @@
 #include "esp_camera.h"
 #include <UniversalTelegramBot.h>
 #include <ArduinoJson.h>
+#include <WiFiManager.h>
 
-const char* ssid = "Irfan.A";
-const char* password = "irfan0204";
+//const char* ssid = "Irfan.A";
+//const char* password = "irfan0204";
 
+WiFiManager wifi;
 // Initialize Telegram BOT
 String BOTtoken = "5195463460:AAG9md0otaoP37pUi1130931TIMAFp-ZOlI";  // your Bot Token (Get from Botfather)
 
@@ -57,6 +59,7 @@ byte batas = 30;
 int counter = 0;
 int timer = 0;
 int countWifi = 0;
+bool connectWIFI;
 
 //Checks for new messages every 1 second.
 int botRequestDelay = 1000;
@@ -306,9 +309,17 @@ void setup() {
   // Connect to Wi-Fi
   WiFi.mode(WIFI_STA);
   Serial.println();
-  Serial.print("Connecting to ");
-  Serial.println(ssid);
-  WiFi.begin(ssid, password);
+  
+  //Serial.println(ssid);
+  connectWIFI = wifi.autoConnect("SMART CAMERA","00000000");
+  if(!connectWIFI){
+    Serial.println("NOT CONNECT IP");
+    delay(100);
+    digitalWrite(indikator, HIGH);
+    delay(100);
+    digitalWrite(indikator, LOW);
+  }
+  //WiFi.begin(ssid, password);
   clientTCP.setCACert(TELEGRAM_CERTIFICATE_ROOT); // Add root certificate for api.telegram.org
   while (WiFi.status() != WL_CONNECTED) {
     countWifi++;
@@ -322,6 +333,8 @@ void setup() {
     delay(500);
     digitalWrite(indikator, LOW);
   }
+  Serial.print("Connecting to ");
+  Serial.print(WiFi.SSID().c_str());
   bot.sendMessage(CHAT_ID, "SYSTEM CAMERA AKTIF", "");
   Serial.println();
   Serial.print("ESP32-CAM IP Address: ");
