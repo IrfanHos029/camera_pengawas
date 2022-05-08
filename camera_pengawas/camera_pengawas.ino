@@ -13,6 +13,8 @@
 #include <ArduinoJson.h>
 #include <WiFiManager.h>
 
+#define triger 13
+#define echo 15
 //const char* ssid = "Irfan.A";
 //const char* password = "irfan0204";
 
@@ -32,8 +34,8 @@ UniversalTelegramBot bot(BOTtoken, clientTCP);
 
 ///////////regestrasi pin device/////////
 #define relay 2
-#define pir_1 13
-#define pir_2 15
+//#define pir_1 13
+//#define pir_2 15
 #define indikator 12
 
 byte pir1 = 0;
@@ -56,9 +58,12 @@ byte Dindi = 1000;
 byte DRecon = 1000;
 byte DBack = 1000;
 byte batas = 30;
+byte maxCM = 50;
 int counter = 0;
 int timer = 0;
 int countWifi = 0;
+int cm = 0;
+long durasi;
 bool connectWIFI;
 
 //Checks for new messages every 1 second.
@@ -300,8 +305,8 @@ void setup() {
   Serial.begin(115200);
 
   pinMode(relay, OUTPUT);
-  pinMode(pir_1, INPUT);
-  pinMode(pir_2, INPUT);
+  pinMode(triger, OUTPUT);
+  pinMode(echo, INPUT);
   pinMode(indikator, OUTPUT);
   // Config and init the camera
   configInitCamera();
@@ -446,9 +451,24 @@ void outLamp() {
 }
 
 void sensorPripare() {
-  pir1 = digitalRead(pir_1);
-  pir2 = digitalRead(pir_2);
+  digitalWrite(triger,LOW);
+  delay(2);
+  digitalWrite(triger,HIGH);
+  delay(10);
+  digitalWrite(triger,LOW);
+  durasi = pulseIn(echo,HIGH);
 
+  cm = durasi*0.034 / 2;
+
+  if( cm < maxCM ){
+     stateSensor = true;
+  }
+
+  else{
+    stateSensor = false;
+  }
+
+/*
   if (pir1 == HIGH && pir2 == HIGH) {
     stateSensor = true;
   }
@@ -466,6 +486,8 @@ void sensorPripare() {
   //  Serial.println(pir1);
   //  Serial.print("sensor 2 :");
   //  Serial.println(pir2);
+  */
+  
 }
 
 
