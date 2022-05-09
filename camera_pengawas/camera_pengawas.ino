@@ -334,7 +334,7 @@ void setup() {
   clientTCP.setCACert(TELEGRAM_CERTIFICATE_ROOT); // Add root certificate for api.telegram.org
   if (WiFi.status() != WL_CONNECTED) {
     countWifi++;
-    if (countWifi == 120) {
+    if (countWifi == 300) {
       ESP.restart();
     }
     //Serial.println(countWifi);
@@ -474,7 +474,7 @@ void sensorPripare() {
   else{
     stateSensor = false;
   }
-
+  Serial.println(cm);
 /*
   if (pir1 == HIGH && pir2 == HIGH) {
     stateSensor = true;
