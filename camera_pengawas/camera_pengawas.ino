@@ -136,7 +136,7 @@ void configInitCamera() {
   // Drop down frame size for higher initial frame rate
   sensor_t * s = esp_camera_sensor_get();
   s->set_framesize(s, FRAMESIZE_CIF);  // UXGA|SXGA|XGA|SVGA|VGA|CIF|QVGA|HQVGA|QQVGA
-  s->set_hmirror(s, 1);
+  s->set_hmirror(s, 0);
 }
 
 void handleNewMessages(int numNewMessages) {
@@ -309,7 +309,7 @@ void setup() {
   WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);
   // Init Serial Monitor
   Serial.begin(115200);
-
+  digitalWrite(indikator, LOW);
   pinMode(relay, OUTPUT);
   pinMode(triger, OUTPUT);
   pinMode(echo, INPUT);
@@ -332,7 +332,7 @@ void setup() {
   }
   //WiFi.begin(ssid, password);
   clientTCP.setCACert(TELEGRAM_CERTIFICATE_ROOT); // Add root certificate for api.telegram.org
-  while (WiFi.status() != WL_CONNECTED) {
+  if (WiFi.status() != WL_CONNECTED) {
     countWifi++;
     if (countWifi == 120) {
       ESP.restart();
