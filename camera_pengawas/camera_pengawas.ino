@@ -48,6 +48,7 @@ bool stateSensor = false;
 bool stateSecurity = false;
 bool stateMode = false;
 bool stateReset = false;
+bool stateResetWifi = false;
 bool stateI = false;
 
 unsigned long Sindi = 0;
@@ -164,7 +165,8 @@ void handleNewMessages(int numNewMessages) {
       welcome += "/lampu_OFF : mematikan lampu \n";
       welcome += "/mode_pagi : menyalakan mode pagi \n";
       welcome += "/mode_malam : menyalakan mode malam \n";
-      welcome += "/RESET \n";
+      welcome += "/RESET_WIFI \n";
+      welcome += "/RESET_SYSTEM \n";
 
       bot.sendMessage(CHAT_ID, welcome, "");
     }
@@ -210,7 +212,11 @@ void handleNewMessages(int numNewMessages) {
       bot.sendMessage(CHAT_ID, "MODE MALAM AKTIF", "");
     }
 
-    if (text == "/RESET") {
+    if(text == "/RESET_WIFI"){
+      stateResetWifi = true;
+    }
+
+    if (text == "/RESET_SYSTEM") {
       stateReset = true;
     }
     /////////////done///////////////
@@ -314,7 +320,7 @@ void setup() {
   // Connect to Wi-Fi
   WiFi.mode(WIFI_STA);
   Serial.println();
-  
+  //delay(1000);
   //Serial.println(ssid);
   connectWIFI = wifi.autoConnect("SMART CAMERA","00000000");
   if(!connectWIFI){
@@ -391,6 +397,7 @@ void loop() {
   outLamp();
   Reconnect();
   RESET();
+  RESETWIFI();
   //Serial.println(counter);
   if (millis() > lastTimeBotRan + botRequestDelay)  {
     int numNewMessages = bot.getUpdates(bot.last_message_received + 1);
@@ -511,6 +518,16 @@ int TimerBack(bool state) {
 void RESET() {
   if (stateReset == true) {
     bot.sendMessage(CHAT_ID, "CONTROLLER CAMERA DIRESET", "");
+    delay(3000);
+    ESP.restart();
+  }
+}
+
+void RESETWIFI(){
+  if (stateResetWifi == true){
+    delay(1000);
+    bot.sendMessage(CHAT_ID, "WIFI YG TERSIMPAN DIRESET", "");
+    wifi.resetSettings();
     delay(3000);
     ESP.restart();
   }
