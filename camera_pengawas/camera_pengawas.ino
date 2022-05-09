@@ -176,14 +176,14 @@ void handleNewMessages(int numNewMessages) {
       Serial.println("New photo request");
     }
 
-    if (text == "/lampu_ON") {
-      stateLam = true;
+    if (text == "/lampu_ON" && stateSecurity == false) {
+      digitalWrite(relay, HIGH);
       Serial.println("lampu ON");
       bot.sendMessage(CHAT_ID, "lampu dinyalakan", "");
     }
 
-    if (text == "/lampu_OFF") {
-      stateLam = false;
+    if (text == "/lampu_OFF" && stateSecurity == false) {
+      digitalWrite(relay, LOW);
       Serial.println("lampu OFF");
       bot.sendMessage(CHAT_ID, "lampu dimatikan", "");
     }
@@ -391,6 +391,9 @@ void loop() {
     }
   }
 
+  else if(stateSecurity == false && stateLam == true){
+    stateLam = false;
+  }
 
 
 
@@ -474,7 +477,7 @@ void sensorPripare() {
   else{
     stateSensor = false;
   }
-  Serial.println(cm);
+  //Serial.println(cm);
 /*
   if (pir1 == HIGH && pir2 == HIGH) {
     stateSensor = true;
