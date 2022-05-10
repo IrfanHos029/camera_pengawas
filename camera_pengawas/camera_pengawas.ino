@@ -13,8 +13,8 @@
 #include <ArduinoJson.h>
 #include <WiFiManager.h>
 
-#define triger 13
-#define echo 15
+//#define triger 13
+//#define echo 15
 //const char* ssid = "Irfan.A";
 //const char* password = "irfan0204";
 
@@ -34,8 +34,8 @@ UniversalTelegramBot bot(BOTtoken, clientTCP);
 
 ///////////regestrasi pin device/////////
 #define relay 2
-//#define pir_1 13
-//#define pir_2 15
+#define sensorIn1 13
+#define sensorIn2 15
 #define indikator 12
 
 byte pir1 = 0;
@@ -50,6 +50,7 @@ bool stateMode = false;
 bool stateReset = false;
 bool stateResetWifi = false;
 bool stateI = false;
+bool stateModeSensor = false;
 
 unsigned long Sindi = 0;
 unsigned long SLedV = 0;
@@ -59,7 +60,7 @@ byte Dindi = 1000;
 byte DRecon = 1000;
 byte DBack = 1000;
 byte batas = 30;
-byte maxCM = 50;
+byte maxCM = 95;
 int counter = 0;
 int timer = 0;
 int countWifi = 0;
@@ -165,6 +166,8 @@ void handleNewMessages(int numNewMessages) {
       welcome += "/lampu_OFF : mematikan lampu \n";
       welcome += "/mode_pagi : menyalakan mode pagi \n";
       welcome += "/mode_malam : menyalakan mode malam \n";
+      welcome += "/mode_sensor_pir \n";
+      welcome += "/mode_sensor_ultrasonic \n";
       welcome += "/RESET_WIFI \n";
       welcome += "/RESET_SYSTEM \n";
 
@@ -212,7 +215,15 @@ void handleNewMessages(int numNewMessages) {
       bot.sendMessage(CHAT_ID, "MODE MALAM AKTIF", "");
     }
 
-    if(text == "/RESET_WIFI"){
+    if(text == "/mode_sensor_pir"){
+      stateModeSensor = false;
+    }
+
+    if(text == "/mode_sensor_ultrasonic"){
+      stateModeSensor = true;
+    }
+
+    if (text == "/RESET_WIFI") {
       stateResetWifi = true;
     }
 
@@ -311,8 +322,8 @@ void setup() {
   Serial.begin(115200);
   digitalWrite(indikator, LOW);
   pinMode(relay, OUTPUT);
-  pinMode(triger, OUTPUT);
-  pinMode(echo, INPUT);
+  pinMode(sensorIn1, OUTPUT);
+  pinMode(sensorIn2, INPUT);
   pinMode(indikator, OUTPUT);
   // Config and init the camera
   configInitCamera();
@@ -322,8 +333,8 @@ void setup() {
   Serial.println();
   //delay(1000);
   //Serial.println(ssid);
-  connectWIFI = wifi.autoConnect("SMART CAMERA","00000000");
-  if(!connectWIFI){
+  connectWIFI = wifi.autoConnect("SMART CAMERA", "00000000");
+  if (!connectWIFI) {
     Serial.println("NOT CONNECT IP");
     delay(100);
     digitalWrite(indikator, HIGH);
@@ -391,7 +402,7 @@ void loop() {
     }
   }
 
-  else if(stateSecurity == false && stateLam == true){
+  else if (stateSecurity == false && stateLam == true) {
     stateLam = false;
   }
 
@@ -461,45 +472,58 @@ void outLamp() {
 }
 
 void sensorPripare() {
-  digitalWrite(triger,LOW);
-  delay(2);
-  digitalWrite(triger,HIGH);
-  delay(10);
-  digitalWrite(triger,LOW);
-  durasi = pulseIn(echo,HIGH);
-
-  cm = durasi*0.034 / 2;
-
-  if( cm < maxCM ){
-     stateSensor = true;
+  if(stateModeSensor == true){
+    modeUltra();
+  }
+  if(stateModeSensor == false){
+    modePIR();
   }
 
-  else{
-    stateSensor = false;
-  }
-  //Serial.println(cm);
-/*
-  if (pir1 == HIGH && pir2 == HIGH) {
-    stateSensor = true;
-  }
-  if (pir1 == HIGH && pir2 == LOW) {
-    stateSensor = true;
-  }
-  if (pir1 == LOW && pir2 == HIGH) {
-    stateSensor = true;
-  }
-  if (pir1 == LOW && pir2 == LOW) {
-    stateSensor = false;
-  }
+}
 
-  //  Serial.print("sensor 1 :");
-  //  Serial.println(pir1);
-  //  Serial.print("sensor 2 :");
-  //  Serial.println(pir2);
-  */
+void modePIR(){
+     byte pir1 = digitalRead(sensorIn1);
+     byte pir2 = digitalRead(sensorIn2);
+     
+    if (pir1 == HIGH && pir2 == HIGH) {
+      stateSensor = true;
+    }
+    if (pir1 == HIGH && pir2 == LOW) {
+      stateSensor = true;
+    }
+    if (pir1 == LOW && pir2 == HIGH) {
+      stateSensor = true;
+    }
+    if (pir1 == LOW && pir2 == LOW) {
+      stateSensor = false;
+    }
+
+    //  Serial.print("sensor 1 :");
+    //  Serial.println(pir1);
+    //  Serial.print("sensor 2 :");
+    //  Serial.println(pir2);
   
 }
 
+void modeUltra(){
+  digitalWrite(sensorIn1, LOW);
+  delay(2);
+  digitalWrite(sensorIn1, HIGH);
+  delay(10);
+  digitalWrite(sensorIn1, LOW);
+  durasi = pulseIn(sensorIn2, HIGH);
+
+  cm = durasi * 0.034 / 2;
+
+  if ( cm <= maxCM ) {
+    stateSensor = true;
+  }
+
+  else {
+    stateSensor = false;
+  }
+  Serial.println(cm);
+}
 
 int TimerBack(bool state) {
 
@@ -526,8 +550,8 @@ void RESET() {
   }
 }
 
-void RESETWIFI(){
-  if (stateResetWifi == true){
+void RESETWIFI() {
+  if (stateResetWifi == true) {
     delay(1000);
     bot.sendMessage(CHAT_ID, "WIFI YG TERSIMPAN DIRESET", "");
     wifi.resetSettings();
