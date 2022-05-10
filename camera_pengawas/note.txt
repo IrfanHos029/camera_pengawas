@@ -2,3 +2,4 @@ relay : 2
 pir1   : 13 -> sebelah kiri
 pir2   : 15 -> sebelah kanan
 indikator : 12
+jarak lebar maksimum teras 107
