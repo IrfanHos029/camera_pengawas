@@ -159,13 +159,13 @@ void handleNewMessages(int numNewMessages) {
     if (text == "/start") {
       String welcome = "Welcome , " + from_name + "\n";
       welcome += "Tekan perintah dibawah ini untuk memakai fitur dalam perangkat \n";
-      welcome += "/photo : mengambil foto \n";
-      welcome += "/security_ON : menyalakan fitur keamanan \n";
-      welcome += "/security_OFF : mematikan fitur keamanan \n";
-      welcome += "/lampu_ON : menyalakan lampu \n";
-      welcome += "/lampu_OFF : mematikan lampu \n";
-      welcome += "/mode_pagi : menyalakan mode pagi \n";
-      welcome += "/mode_malam : menyalakan mode malam \n";
+      welcome += "/photo \n";
+      welcome += "/security_ON \n";
+      welcome += "/security_OFF \n";
+      welcome += "/lampu_ON \n";
+      welcome += "/lampu_OFF \n";
+      welcome += "/mode_pagi \n";
+      welcome += "/mode_malam \n";
       welcome += "/mode_sensor_pir \n";
       welcome += "/mode_sensor_ultrasonic \n";
       welcome += "/RESET_WIFI \n";
@@ -217,14 +217,18 @@ void handleNewMessages(int numNewMessages) {
 
     if(text == "/mode_sensor_pir"){
       stateModeSensor = false;
+      Serial.println("mode pir");
+      bot.sendMessage(CHAT_ID, "MODE PIR", "");
     }
 
     if(text == "/mode_sensor_ultrasonic"){
       stateModeSensor = true;
+       Serial.println("mode ultrasonic");
+      bot.sendMessage(CHAT_ID, "MODE ULTRASONIC", "");
     }
 
     if (text == "/RESET_WIFI") {
-      stateResetWifi = true;
+      stateResetWifi = true;       
     }
 
     if (text == "/RESET_SYSTEM") {
@@ -498,10 +502,10 @@ void modePIR(){
       stateSensor = false;
     }
 
-    //  Serial.print("sensor 1 :");
-    //  Serial.println(pir1);
-    //  Serial.print("sensor 2 :");
-    //  Serial.println(pir2);
+//      Serial.print("sensor 1 :");
+//      Serial.println(pir1);
+//      Serial.print("sensor 2 :");
+//      Serial.println(pir2);
   
 }
 
@@ -522,7 +526,7 @@ void modeUltra(){
   else {
     stateSensor = false;
   }
-  Serial.println(cm);
+  //Serial.println(cm);
 }
 
 int TimerBack(bool state) {
